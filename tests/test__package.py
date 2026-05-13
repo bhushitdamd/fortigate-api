@@ -3,7 +3,7 @@ import ast
 import re
 from pathlib import Path
 
-from vhelpers import vdate, vdict, vpath, vre
+from vhelpers import vdate, vpath, vre, vdict
 
 ROOT = Path(__file__).parent.parent.resolve()
 PYPROJECT_D = vdict.pyproject_d(ROOT)
@@ -12,19 +12,18 @@ PYPROJECT_D = vdict.pyproject_d(ROOT)
 def test__python_version():
     """Python version in pyproject.toml."""
     actual = PYPROJECT_D["tool"]["poetry"]["dependencies"]["python"]
-    expected = "^3.8"
+    expected = "^3.11"
     assert actual == expected
 
 
 def test__version__changelog():
     """Version in CHANGELOG."""
+    version_toml = PYPROJECT_D["tool"]["poetry"]["version"]
     path = Path.joinpath(ROOT, "CHANGELOG.rst")
     text = path.read_text(encoding="utf-8")
     regex = r"(.+)\s\(\d\d\d\d-\d\d-\d\d\)$"
-    actual = vre.find1(regex, text, re.M)
-
-    expected = PYPROJECT_D["tool"]["poetry"]["version"]
-    assert actual == expected, f"version in {path=}"
+    version_log = vre.find1(regex, text, re.M)
+    assert version_toml == version_log, f"version in {path=}"
 
 
 def test__version__docs():
@@ -51,7 +50,8 @@ def test__last_modified_date():
     path = Path.joinpath(ROOT, "CHANGELOG.rst")
     text = path.read_text(encoding="utf-8")
     regex = r".+\((\d\d\d\d-\d\d-\d\d)\)$"
-    actual = vre.find1(regex, text, re.M)
-    files = vpath.get_files(ROOT, pattern="\.py$")
-    expected = vdate.last_modified(files)
-    assert actual == expected, "last modified file"
+    date_log = vre.find1(regex, text, re.M)
+    re_extension = "|".join(["py", "toml"])
+    files = vpath.get_files(ROOT, pattern=rf"\.({re_extension})$")
+    last_modified = vdate.last_modified(files)
+    assert last_modified == date_log, f"Last modified date in {path=}"

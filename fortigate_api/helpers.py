@@ -222,16 +222,16 @@ def pop_lstr(key: str, data: DAny) -> LStr:
     :param data: The dictionary from which the key is to be popped.
     :return: The values as a string. Update `data`, remove `key`.
     """
-    values = vdict.pop(data, key=key)
+    values = data.pop(key, None)
     if values is None:
         values = []
     if isinstance(values, str):
         values = [values]
     if not isinstance(values, TLists):
-        raise TypeError(f"{key=} {values=} {list} expected.")
+        raise TypeError(f"{key=} {list} expected.")
     for value in values:
         if not isinstance(value, str):
-            raise TypeError(f"{key=} {value=} {list} expected.")
+            raise TypeError(f"{key=} {list} expected.")
     return list(values)
 
 

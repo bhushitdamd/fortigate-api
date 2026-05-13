@@ -1,0 +1,44 @@
+FROM hub.rms.evolutiongaming.com/python:3.11.9-slim
+
+ENV APP_NAME=fortigate-api \
+    USER=daemon \
+    GROUP=daemon \
+    POETRY_VERSION=2.1.2 \
+    POETRY_HOME=/opt/poetry \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+ENV LOG_DIR=/var/log/${APP_NAME} \
+    PATH="${POETRY_HOME}/bin:${PATH}"
+
+# Install system deps
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    curl \
+  && rm -rf /var/lib/apt/lists/*
+
+# poetry without env
+RUN curl -sSL https://install.python-poetry.org | python3 - \
+  && poetry config virtualenvs.create false
+
+# permissions for logging
+RUN mkdir -p ${LOG_DIR} \
+  && chown ${USER}:${GROUP} ${LOG_DIR} \
+  && chmod u+rw,g+rw ${LOG_DIR}
+
+WORKDIR /${APP_NAME}
+
+# Install app deps, create requirements for prod and dev
+COPY pyproject.toml ./
+RUN rm -f poetry.lock requirements.txt requirements_dev.txt \
+  && poetry lock \
+  && poetry install --no-root --only main \
+  && pip list --format=freeze > requirements.txt \
+  && poetry install --no-root --with dev \
+  && pip list --format=freeze > requirements_dev.txt
+
+# Copy app code
+COPY . .
+
+USER ${USER}
